@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import {
     getSysexDumpRequestMessage,
     isValidXGDump,
@@ -28,8 +28,7 @@ function sendUmpRequest() {
 function sendPartData() {
     console.log("Sending SysEx message:", Array.from(dumpData.value));
     if (midiOutput.value) {
-        dumpData.value = checkSysexAndReplaceCheckSum(dumpData.value);
-        midiOutput.value.send(Array.from(dumpData.value));
+        midiOutput.value.send(Array.from(checkSysexAndReplaceCheckSum(dumpData.value)));
     }
 }
 
@@ -37,8 +36,8 @@ onMounted(async () => {
     try {
         const access = await navigator.requestMIDIAccess({ sysex: true });
         midiAccess.value = access;
-        midiOutput.value = access.outputs.values().next().value;
-        midiInput.value = access.inputs.values().next().value;
+
+        console.log(midiAccess.value);
 
         for (let input of midiAccess.value.inputs.values()) {
             input.onmidimessage = (message: WebMidi.MIDIMessageEvent): void => {
@@ -60,8 +59,6 @@ onMounted(async () => {
                     console.log("MIDI message is valid dump");
                     dumpData.value = dataArray;
                     console.log("Dump data:", dumpData.value);
-                } else {
-                    console.log("MIDI message is not valid dump");
                 }
             };
         }
@@ -70,13 +67,37 @@ onMounted(async () => {
     }
 });
 
-watch(inputXgMultiPart, (newValue) => {
+watch(outputXgMultiPart, (newValue, oldValue) => {
+    if (!dumpData.value.length) {
+        return;
+    }
+    console.log("Output XG Multi Part changed:", oldValue, newValue);
     dumpData.value = changeXGMultiPartNumber(dumpData.value, Number(newValue));
+    console.log(dumpData.value);
+});
+
+const computedPartNumber = computed(() => {
+    console.log("Computed Part Number:" + getXGMultiPartNumber(dumpData.value));
+    return getXGMultiPartNumber(dumpData.value);
 });
 </script>
 
 <template>
     <main>
+        <!-- List Midi Inputs and let the user chose -->
+        <label>Select MIDI Input</label>
+        <select v-model="midiInput" v-if="midiAccess">
+            <option v-for="input of midiAccess.inputs.values()" :key="input.id" :value="input">{{ input.name }}</option>
+        </select>
+
+        <!-- List Midi Outputs and let the user chose -->
+        <label>Select MIDI Output</label>
+        <select v-model="midiOutput" v-if="midiAccess">
+            <option v-for="output of midiAccess.outputs.values()" :key="output.id" :value="output">
+                {{ output.name }}
+            </option>
+        </select>
+
         <!-- List of XG Multi Parts, from 0 to 99 -->
         <label>Select Input XG Multi Part</label>
         <select v-model="inputXgMultiPart">
@@ -99,7 +120,7 @@ watch(inputXgMultiPart, (newValue) => {
         <textarea rows="10" cols="50" disabled>
             {{ dumpData }}
         </textarea>
-        <p>Part Number: {{ dumpData.length && getXGMultiPartNumber(dumpData) }}</p>
+        <p v-if="dumpData.length">Part Number: {{ computedPartNumber }}</p>
 
         <!-- Send Part Data -->
         <button @click="sendPartData">Send Part Data</button>

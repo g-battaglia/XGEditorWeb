@@ -27,4 +27,17 @@ function hexToInt(hex: string): number {
     return parseInt(hex, 16);
 }
 
-export { intToHex, hexToInt };
+/**
+ * Gets an element at a negative index.
+ *
+ * @param array An array.
+ * @param negativeIndex A negative index.
+ */
+function getPositiveIndexFromNegativeIndex(array: any[], negativeIndex: number): number {
+    if (negativeIndex >= 0) {
+        throw new Error("Index should be negative");
+    }
+    const positiveIndex = array.length + negativeIndex;
+    return positiveIndex;
+}
+export { intToHex, hexToInt, getPositiveIndexFromNegativeIndex };

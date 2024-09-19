@@ -1,4 +1,5 @@
 import { intToHex } from "../utils";
+import { checkSysexAndReplaceCheckSum } from "@/sysex/parser";
 
 /** XG Multi Part Dump Request Sysex Message. */
 const MULTI_PART_DUMP_REQUEST_SYSEX = "0xF0 0x43 0x20 0x4C 0x08 0x%% 0x00 0xF7";
@@ -22,11 +23,13 @@ function getSysexDumpRequestMessage(partNumber: number): string[] {
 function isValidXGDump(data: string[]): boolean {
     // The lenght is always 52
     if (data.length !== 52) {
+        console.error("Invalid length");
         return false;
     }
 
     // The 7th and the 13th byte have always the same value
-    if (data[6] !== data[12]) {
+    if (data[7] !== data[13]) {
+        console.error("Invalid part number.")
         return false;
     }
 
@@ -48,7 +51,7 @@ function getXGMultiPartNumber(data: string[]): number {
         throw new Error("Invalid XG Multi Part Dump Sysex Message.");
     }
 
-    return parseInt(data[6], 16);
+    return parseInt(data[7], 16);
 }
 
 /**
@@ -59,17 +62,25 @@ function getXGMultiPartNumber(data: string[]): number {
  * @returns The modified XG Multi Part Dump Sysex Message.
  */
 function changeXGMultiPartNumber(data: string[], newPartNumber: number): string[] {
+    const newData = [...data];
     if (!isValidXGDump(data)) {
+        console.error(data);
         throw new Error("Invalid XG Multi Part Dump Sysex Message.");
     }
 
     if (isNaN(newPartNumber)) {
+        console.error(newPartNumber);
         throw new Error("Invalid new part number.");
     }
 
-    data[6] = intToHex(newPartNumber);
-    data[12] = intToHex(newPartNumber);
-    return data;
+    newData[7] = intToHex(newPartNumber);
+    newData[13] = intToHex(newPartNumber);
+
+    const validData = checkSysexAndReplaceCheckSum(newData);
+    console.log(validData);
+
+    // Checksum calculation
+    return validData;
 }
 
 export { getSysexDumpRequestMessage, isValidXGDump, getXGMultiPartNumber, changeXGMultiPartNumber };
