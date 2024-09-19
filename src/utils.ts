@@ -9,7 +9,8 @@ function intToHex(number: number): string {
   if (!Number.isInteger(number)) {
     throw new Error('Input must be an integer.');
   }
-  return number.toString(16).toUpperCase();
+  const hex = number.toString(16).toUpperCase();
+  return hex.length === 1 ? '0' + hex : hex;
 }
 
 /**

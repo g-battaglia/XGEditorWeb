@@ -6,7 +6,7 @@ const parsers = Object.freeze([
   },
   // Yamaha XG and later synths: Bulk Dump
   {
-    regexp: /^f0 43 0. (?:7f 1c ..|7f ..|..) ((?:.. )+).. f7$/u,	// TODO: Sub-model ID '1c' needs to be updated in near future.
+    regexp: /^f0 43 0. (?:7f 1c ..|7f ..|..) ((?:.. )+).. f7$/u, // TODO: Sub-model ID '1c' needs to be updated in near future.
     checker: calcCheckSumRol,
   },
   // Yamaha GM sound modules: Parameter Change and Bulk Dump Request
@@ -47,12 +47,14 @@ const parsers = Object.freeze([
   },
   // Casio: Oneway/Handshake Parameter Set Bulk Send (BDS/HDS)
   {
-    regexp: /^f0 44 11 .. .. 0[24] .. .. .. .. .. .. .. .. ((?:.. .. .. )+).. f7/u,
+    regexp:
+      /^f0 44 11 .. .. 0[24] .. .. .. .. .. .. .. .. ((?:.. .. .. )+).. f7/u,
     checker: calcCheckSumRol,
   },
   // Casio: Oneway/Handshake Bulk Parameter Set Send (OBS/HBS)
   {
-    regexp: /^f0 44 15 .. .. 0[46] .. .. .. .. .. .. .. .. ((?:.. .. .. )+).. f7/u,
+    regexp:
+      /^f0 44 15 .. .. 0[46] .. .. .. .. .. .. .. .. ((?:.. .. .. )+).. f7/u,
     checker: calcCheckSumRol,
   },
   // Technics: Data Request, Individual Data, Data Block, and Continuing Data
@@ -73,7 +75,7 @@ const parsers = Object.freeze([
   // E-mu Proteus 2000: Preset Dump Data
   {
     regexp: /^f0 18 0f .. 55 10 0[24] .. .. ((?:.. .. )+).. f7/u,
-    checker: (bytes) => 0x7f - calcCheckSum(bytes),	// 1's complement
+    checker: (bytes) => 0x7f - calcCheckSum(bytes), // 1's complement
   },
   // Universal SysEx: Sample Data Packet
   {
@@ -112,14 +114,26 @@ const parsers = Object.freeze([
   },
 ]);
 
-function parseSysEx(bytes: number[]): { bytes: number[], isNeededCheckSum: boolean, isCheckSumError?: boolean, checkSum?: number, calculatedCheckSum?: number, range?: number[], rangeIndex?: number } | null {
+function parseSysEx(bytes: number[]): {
+  bytes: number[];
+  isNeededCheckSum: boolean;
+  isCheckSumError?: boolean;
+  checkSum?: number;
+  calculatedCheckSum?: number;
+  range?: number[];
+  rangeIndex?: number;
+} | null {
   if (!bytes || !bytes.length) {
     return null;
   }
 
   // Checks whether it is a valid SysEx.
   const sysExStr = bytesToHex(bytes);
-  if (!/^f0 (?:0[1-9a-f]|[1-5].|7[def]|00 0[0-2] [0-7].|00 2[0-2] [0-7].|00 40 [0-7].|00 48 [0-7].) (?:[0-7]. )*f7$/u.test(sysExStr)) {
+  if (
+    !/^f0 (?:0[1-9a-f]|[1-5].|7[def]|00 0[0-2] [0-7].|00 2[0-2] [0-7].|00 40 [0-7].|00 48 [0-7].) (?:[0-7]. )*f7$/u.test(
+      sysExStr
+    )
+  ) {
     return null;
   }
   console.assert(bytes.length >= 3);
@@ -137,8 +151,11 @@ function parseSysEx(bytes: number[]): { bytes: number[], isNeededCheckSum: boole
       return {
         bytes,
         isNeededCheckSum: true,
-        isCheckSumError: (checkSum !== calculatedCheckSum),
-        checkSum, calculatedCheckSum, range, rangeIndex,
+        isCheckSumError: checkSum !== calculatedCheckSum,
+        checkSum,
+        calculatedCheckSum,
+        range,
+        rangeIndex,
       };
     }
   }
@@ -163,8 +180,38 @@ function calcCheckXor(bytes: number[]): number {
 
 function bytesToHex(bytes: number[]): string {
   console.assert(bytes && bytes.length > 0);
-  return [...bytes].map((e) => `0${Number(e).toString(16)}`.slice(-2)).join(' ');
+  return [...bytes]
+    .map((e) => `0${Number(e).toString(16)}`.slice(-2))
+    .join(" ");
 }
 
-export { parseSysEx, calcCheckSumRol, calcCheckSum, calcCheckXor, bytesToHex };
+function checkSysexAndReplaceCheckSum(data: string[]): string[] {
+  // Convert the hex string array to an array of bytes.
+  const bytes = data.map((e) => parseInt(e, 16));
 
+  const parsed = parseSysEx(bytes);
+  if (!parsed || !parsed.isNeededCheckSum) {
+    return data;
+  }
+
+  if (!parsed.calculatedCheckSum) {
+    console.error(parsed);
+    throw new Error("Calculated checksum is not found.");
+  }
+
+  // Replace the last byte before the last with the calculated checksum.
+  const newBytes = [...bytes];
+  newBytes[-2] = parsed.calculatedCheckSum;
+
+  // Convert the byte array to a hex string array with Ox prefix and always 2 digits and uppercase.
+  return newBytes.map((e) => `0x${`0${e.toString(16)}`.slice(-2).toUpperCase()}`);
+}
+
+export {
+  parseSysEx,
+  calcCheckSumRol,
+  calcCheckSum,
+  calcCheckXor,
+  bytesToHex,
+  checkSysexAndReplaceCheckSum,
+};
