@@ -15,7 +15,7 @@ const midiOutput = ref<any>(null);
 const inputXgMultiPart = ref<Number | null>(0);
 const outputXgMultiPart = ref<Number | null>(0);
 
-const dumpData = ref<Array<String>>([]);
+const dumpData = ref<Array<string>>([]);
 
 function sendUmpRequest() {
     const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
@@ -99,7 +99,7 @@ watch(inputXgMultiPart, (newValue) => {
         <textarea rows="10" cols="50" disabled>
             {{ dumpData }}
         </textarea>
-        <p>Part Number: {{ getXGMultiPartNumber(dumpData) }}</p>
+        <p>Part Number: {{ dumpData.length && getXGMultiPartNumber(dumpData) }}</p>
 
         <!-- Send Part Data -->
         <button @click="sendPartData">Send Part Data</button>
