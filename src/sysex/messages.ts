@@ -42,7 +42,6 @@ function isValidXGDump(data: string[]): boolean {
  *
  * @param data An array of strings representing a valid XG Multi Part Dump Sysex Message.
  * @returns The XG Multi Part Number.
- * @throws An error if the input is not a valid XG Multi Part Dump Sysex Message.
  */
 function getXGMultiPartNumber(data: string[]): number {
     if (!isValidXGDump(data)) {
@@ -58,9 +57,6 @@ function getXGMultiPartNumber(data: string[]): number {
  * @param data An array of strings representing a valid XG Multi Part Dump Sysex Message.
  * @param newPartNumber The new part number to set.
  * @returns The modified XG Multi Part Dump Sysex Message.
- * @throws An error if the input is not a valid XG Multi Part Dump Sysex Message.
- * @throws An error if the new part number is not a valid number.
- * @throws An error if the new part number is not in the range [0, 99].
  */
 function changeXGMultiPartNumber(data: string[], newPartNumber: number): string[] {
     if (!isValidXGDump(data)) {

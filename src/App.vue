@@ -1,21 +1,37 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from "vue";
-import { getSysexDumpRequestMessage, isValidXGDump, getXGMultiPartNumber } from "@/sysex/messages";
+import { ref, onMounted, watch } from "vue";
+import {
+    getSysexDumpRequestMessage,
+    isValidXGDump,
+    getXGMultiPartNumber,
+    changeXGMultiPartNumber,
+} from "@/sysex/messages";
 import { checkSysexAndReplaceCheckSum } from "@/sysex/parser";
 
-const midiAccess = ref<WebMidi.MIDIAccess | null>(null);
-const availableInputs = ref<WebMidi.MIDIInput[]>([]);
-const midiInput = ref<WebMidi.MIDIInput | null>(null);
-const midiOutput = ref<WebMidi.MIDIOutput | null>(null);
+const midiAccess = ref<any>(null);
+const midiInput = ref<any>(null);
+const midiOutput = ref<any>(null);
 
 const inputXgMultiPart = ref<Number | null>(0);
 const outputXgMultiPart = ref<Number | null>(0);
 
 const dumpData = ref<Array<String>>([]);
 
-const onMIDIFailure = (error: Error): void => {
-    console.error("Failed to get MIDI access:", error);
-};
+function sendUmpRequest() {
+    const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
+    console.log("Sending SysEx message:", message);
+    if (midiOutput) {
+        midiOutput.value.send(message);
+    }
+}
+
+function sendPartData() {
+    console.log("Sending SysEx message:", Array.from(dumpData.value));
+    if (midiOutput.value) {
+        dumpData.value = checkSysexAndReplaceCheckSum(dumpData.value);
+        midiOutput.value.send(Array.from(dumpData.value));
+    }
+}
 
 onMounted(async () => {
     try {
@@ -54,29 +70,9 @@ onMounted(async () => {
     }
 });
 
-function setInputMultiPart(data: Number) {
-    xgMultiPart.value = data;
-}
-
-function setOutputMultiPart(data: Number) {
-    xgMultiPart.value = data;
-}
-
-function sendUmpRequest() {
-    const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
-    console.log("Sending SysEx message:", message);
-    if (midiOutput) {
-        midiOutput.value.send(message);
-    }
-}
-
-function sendPartData() {
-    console.log("Sending SysEx message:", Array.from(dumpData.value));
-    if (midiOutput) {
-        dumpData.value = checkSysexAndReplaceCheckSum(dumpData.value);
-        midiOutput.value.send(Array.from(dumpData.value));
-    }
-}
+watch(inputXgMultiPart, (newValue) => {
+    dumpData.value = changeXGMultiPartNumber(dumpData.value, Number(newValue));
+});
 </script>
 
 <template>
@@ -100,7 +96,9 @@ function sendPartData() {
 
         <!-- Dump Data -->
         <label>Dump Data</label>
-        <textarea v-model="dumpData" rows="10" cols="50" disabled></textarea>
+        <textarea rows="10" cols="50" disabled>
+            {{ dumpData }}
+        </textarea>
         <p>Part Number: {{ getXGMultiPartNumber(dumpData) }}</p>
 
         <!-- Send Part Data -->
