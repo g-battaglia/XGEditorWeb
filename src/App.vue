@@ -13,14 +13,11 @@ import {
 } from "@/sysex/messages";
 import { checkSysexAndReplaceCheckSum } from "@/sysex/parser";
 
-const midiAccess = reactive({
-    name: null,
-    port: null,
-});
+const midiAccess = ref<any>();
 const availableMidiInputs = ref<Array<any>>([]);
 const availableMidiOutputs = ref<Array<any>>([]);
-const midiInput = ref<any>();
-const midiOutput = ref<any>(null);
+const selectedMidiInput = ref<any>();
+const selectedMidiOutput = ref<any>(null);
 
 const inputXgMultiPart = ref<Number>(0);
 const outputXgMultiPart = ref<Number>(0);
@@ -32,15 +29,15 @@ const volume = ref(50);
 function sendUmpRequest() {
     const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
 
-    if (midiOutput) {
-        midiOutput.value.send(message);
+    if (selectedMidiOutput) {
+        selectedMidiOutput.value.port.send(message);
     }
 }
 
 function sendPartData() {
     console.log("Sending SysEx message:", Array.from(dumpData.value));
-    if (midiOutput.value) {
-        midiOutput.value.send(Array.from(checkSysexAndReplaceCheckSum(dumpData.value)));
+    if (selectedMidiOutput.value) {
+        selectedMidiOutput.value.port.send(Array.from(checkSysexAndReplaceCheckSum(dumpData.value)));
     }
 }
 
@@ -114,50 +111,48 @@ watch(midiAccess, (newValue) => {
 </script>
 
 <template>
-    <h1>XG Multi Part Editor</h1>
-    <main>
-        <!-- List Midi Inputs and let the user chose -->
-        <label>Select MIDI Input</label>
-        <Select v-model="midiInput" :options="availableMidiInputs" placeholder="Select Input" optionLabel="name" />
+    <div class="container">
+        <h1>XG Multi Part Editor</h1>
+        <main>
+            <!-- List Midi Inputs and let the user chose -->
+            <label>Select MIDI Input</label>
+            <Select v-model="selectedMidiInput" :options="availableMidiInputs" placeholder="Select Input"
+                optionLabel="name" />
 
-        <!-- List Midi Outputs and let the user chose -->
-        <label>Select MIDI Output</label>
-        <Select v-model="midiOutput" :options="availableMidiOutputs" placeholder="Select Output" optionLabel="name" />
+            <!-- List Midi Outputs and let the user chose -->
+            <label>Select MIDI Output</label>
+            <Select v-model="selectedMidiOutput" :options="availableMidiOutputs" placeholder="Select Output"
+                optionLabel="name" />
 
-        <!-- List of XG Multi Parts, from 0 to 99 -->
-        <label>Select Input XG Multi Part</label>
-        <Select
-            v-model="inputXgMultiPart"
-            :options="Array.from({ length: 100 }, (_, i) => i)"
-            placeholder="Select Part"
-        />
+            <!-- List of XG Multi Parts, from 0 to 99 -->
+            <label>Select Input XG Multi Part</label>
+            <Select v-model="inputXgMultiPart" :options="Array.from({ length: 100 }, (_, i) => i)"
+                placeholder="Select Part" />
 
-        <!-- List of XG Multi Parts, from 0 to 99 -->
-        <label>Select Output XG Multi Part</label>
-        <Select
-            v-model="outputXgMultiPart"
-            :options="Array.from({ length: 100 }, (_, i) => i)"
-            placeholder="Select Part"
-        />
+            <!-- List of XG Multi Parts, from 0 to 99 -->
+            <label>Select Output XG Multi Part</label>
+            <Select v-model="outputXgMultiPart" :options="Array.from({ length: 100 }, (_, i) => i)"
+                placeholder="Select Part" />
 
-        <!-- Send Dump Request -->
-        <Button @click="sendUmpRequest">Send Dump Request</Button>
+            <!-- Send Dump Request -->
+            <Button @click="sendUmpRequest">Send Dump Request</Button>
 
-        <!-- Dump Data -->
-        <label>Dump Data</label>
-        <textarea rows="10" cols="50" disabled>
-            {{ dumpData }}
-        </textarea>
-        <p v-if="dumpData.length">Part Number: {{ computedPartNumber }}</p>
+            <!-- Dump Data -->
+            <label>Dump Data</label>
+            <textarea rows="10" cols="50" disabled>
+                {{ dumpData }}
+            </textarea>
+            <p v-if="dumpData.length">Part Number: {{ computedPartNumber }}</p>
 
-        <!-- Send Part Data -->
-        <Button @click="sendPartData">Send Part Data</Button>
+            <!-- Send Part Data -->
+            <Button @click="sendPartData">Send Part Data</Button>
 
-        <label>Volume</label>
-        <Knob v-model="volume" :min="0" :max="127" :step="1" :size="100" :showValue="true" />
-        <input type="number" v-model="volume" min="0" max="127" />
-        <InputText v-model="volume" />
-    </main>
+            <label>Volume</label>
+            <Knob v-model="volume" :min="0" :max="127" :step="1" :size="100" :showValue="true" />
+            <input type="number" v-model="volume" min="0" max="127" />
+            <InputText v-model="volume" />
+        </main>
+    </div>
 </template>
 
 <style scoped>
