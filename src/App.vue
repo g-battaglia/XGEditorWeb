@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from "vue";
+import Button from 'primevue/button';
+import Knob from 'primevue/knob';
+
+
+
 import {
     getSysexDumpRequestMessage,
     isValidXGDump,
@@ -16,6 +21,8 @@ const inputXgMultiPart = ref<Number | null>(0);
 const outputXgMultiPart = ref<Number | null>(0);
 
 const dumpData = ref<Array<string>>([]);
+
+const volume = ref(50);
 
 function sendUmpRequest() {
     const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
@@ -113,7 +120,7 @@ const computedPartNumber = computed(() => {
         </select>
 
         <!-- Send Dump Request -->
-        <button @click="sendUmpRequest">Send Dump Request</button>
+        <Button @click="sendUmpRequest">Send Dump Request</Button>
 
         <!-- Dump Data -->
         <label>Dump Data</label>
@@ -123,7 +130,10 @@ const computedPartNumber = computed(() => {
         <p v-if="dumpData.length">Part Number: {{ computedPartNumber }}</p>
 
         <!-- Send Part Data -->
-        <button @click="sendPartData">Send Part Data</button>
+        <Button @click="sendPartData">Send Part Data</Button>
+
+        <label>Volume</label>
+        <Knob v-model="volume" :min="0" :max="127" :step="0" :size="100" :showValue="true" />
     </main>
 </template>
 
