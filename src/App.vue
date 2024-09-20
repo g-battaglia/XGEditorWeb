@@ -111,9 +111,9 @@ watch(midiAccess, (newValue) => {
 </script>
 
 <template>
-    <div class="container">
+    <div class="container mx-auto">
         <h1>XG Multi Part Editor</h1>
-        <main>
+        <main class="flex">
             <!-- List Midi Inputs and let the user chose -->
             <label>Select MIDI Input</label>
             <Select v-model="selectedMidiInput" :options="availableMidiInputs" placeholder="Select Input"
@@ -157,7 +157,6 @@ watch(midiAccess, (newValue) => {
 
 <style scoped>
 main {
-    display: flex;
     flex-direction: column;
     gap: 1rem;
 }
