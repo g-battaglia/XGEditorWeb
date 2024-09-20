@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
 import Button from 'primevue/button';
+import { ref, onMounted, watch, computed } from "vue";
 import Knob from 'primevue/knob';
-
 
 
 import {
@@ -133,7 +132,8 @@ const computedPartNumber = computed(() => {
         <Button @click="sendPartData">Send Part Data</Button>
 
         <label>Volume</label>
-        <Knob v-model="volume" :min="0" :max="127" :step="0" :size="100" :showValue="true" />
+        <Knob v-model="volume" :min="0" :max="127" :step="1" :size="100" :showValue="true" />
+        <input type="number" v-model="volume" min="0" max="127" />
     </main>
 </template>
 
