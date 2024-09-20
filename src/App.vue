@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import Button from 'primevue/button';
-import { ref, onMounted, watch, computed } from "vue";
-import Knob from 'primevue/knob';
-
+import Button from "primevue/button";
+import { ref, onMounted, watch, computed, reactive } from "vue";
+import Knob from "primevue/knob";
+import InputText from "primevue/inputtext";
+import Select from "primevue/select";
 
 import {
     getSysexDumpRequestMessage,
@@ -12,12 +13,17 @@ import {
 } from "@/sysex/messages";
 import { checkSysexAndReplaceCheckSum } from "@/sysex/parser";
 
-const midiAccess = ref<any>(null);
-const midiInput = ref<any>(null);
+const midiAccess = reactive({
+    name: null,
+    port: null,
+});
+const availableMidiInputs = ref<Array<any>>([]);
+const availableMidiOutputs = ref<Array<any>>([]);
+const midiInput = ref<any>();
 const midiOutput = ref<any>(null);
 
-const inputXgMultiPart = ref<Number | null>(0);
-const outputXgMultiPart = ref<Number | null>(0);
+const inputXgMultiPart = ref<Number>(0);
+const outputXgMultiPart = ref<Number>(0);
 
 const dumpData = ref<Array<string>>([]);
 
@@ -25,7 +31,7 @@ const volume = ref(50);
 
 function sendUmpRequest() {
     const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
-    console.log("Sending SysEx message:", message);
+
     if (midiOutput) {
         midiOutput.value.send(message);
     }
@@ -57,7 +63,7 @@ onMounted(async () => {
 
                 const dataArray = Array.from(
                     message.data,
-                    (byte) => "0x" + byte.toString(16).toUpperCase().padStart(2, "0")
+                    (byte) => "0x" + byte.toString(16).toUpperCase().padStart(2, "0"),
                 );
                 console.log("MIDI message received:", dataArray);
 
@@ -86,37 +92,53 @@ const computedPartNumber = computed(() => {
     console.log("Computed Part Number:" + getXGMultiPartNumber(dumpData.value));
     return getXGMultiPartNumber(dumpData.value);
 });
+
+watch(midiAccess, (newValue) => {
+    if (!newValue) {
+        return;
+    }
+
+    const inputs = Array.from(newValue.inputs.values()).map((input: any) => ({
+        name: input.name,
+        port: input,
+    }));
+
+    const outputs = Array.from(newValue.outputs.values()).map((output: any) => ({
+        name: output.name,
+        port: output,
+    }));
+
+    availableMidiInputs.value = inputs;
+    availableMidiOutputs.value = outputs;
+});
 </script>
 
 <template>
+    <h1>XG Multi Part Editor</h1>
     <main>
         <!-- List Midi Inputs and let the user chose -->
         <label>Select MIDI Input</label>
-        <select v-model="midiInput" v-if="midiAccess">
-            <option v-for="input of midiAccess.inputs.values()" :key="input.id" :value="input">{{ input.name }}</option>
-        </select>
+        <Select v-model="midiInput" :options="availableMidiInputs" placeholder="Select Input" optionLabel="name" />
 
         <!-- List Midi Outputs and let the user chose -->
         <label>Select MIDI Output</label>
-        <select v-model="midiOutput" v-if="midiAccess">
-            <option v-for="output of midiAccess.outputs.values()" :key="output.id" :value="output">
-                {{ output.name }}
-            </option>
-        </select>
+        <Select v-model="midiOutput" :options="availableMidiOutputs" placeholder="Select Output" optionLabel="name" />
 
         <!-- List of XG Multi Parts, from 0 to 99 -->
         <label>Select Input XG Multi Part</label>
-        <select v-model="inputXgMultiPart">
-            <option disabled selected value="0">0</option>
-            <option v-for="part in 100" :key="part">{{ part }}</option>
-        </select>
+        <Select
+            v-model="inputXgMultiPart"
+            :options="Array.from({ length: 100 }, (_, i) => i)"
+            placeholder="Select Part"
+        />
 
         <!-- List of XG Multi Parts, from 0 to 99 -->
         <label>Select Output XG Multi Part</label>
-        <select v-model="outputXgMultiPart">
-            <option disabled selected value="0">0</option>
-            <option v-for="part in 100" :key="part">{{ part }}</option>
-        </select>
+        <Select
+            v-model="outputXgMultiPart"
+            :options="Array.from({ length: 100 }, (_, i) => i)"
+            placeholder="Select Part"
+        />
 
         <!-- Send Dump Request -->
         <Button @click="sendUmpRequest">Send Dump Request</Button>
@@ -134,6 +156,7 @@ const computedPartNumber = computed(() => {
         <label>Volume</label>
         <Knob v-model="volume" :min="0" :max="127" :step="1" :size="100" :showValue="true" />
         <input type="number" v-model="volume" min="0" max="127" />
+        <InputText v-model="volume" />
     </main>
 </template>
 
