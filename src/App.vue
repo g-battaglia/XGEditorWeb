@@ -10,8 +10,8 @@ import PartDumper from "./components/PartDumper.vue";
 
 <template>
     <Tabs value="0">
-        <TabList class="relative">
-            <img alt="Yamaha XG" src="/img/xg-logo.png" class="absolute top-0 left-0 h-10 z-10 transform -translate-y-1/2 top-1/2" />
+        <TabList class="relative container mx-auto">
+            <img alt="Yamaha XG" src="/img/xg-logo.png" class="absolute top-0 left-0 h-10 z-10 transform -translate-y-1/2 top-1/2 lef-0" />
             <div class="mx-auto">
                 <Tab value="0">Part Dumper</Tab>
                 <Tab value="1">Header II</Tab>
