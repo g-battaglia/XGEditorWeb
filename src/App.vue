@@ -1,163 +1,49 @@
-<script setup lang="ts">
-import Button from "primevue/button";
-import { ref, onMounted, watch, computed, reactive } from "vue";
-import Knob from "primevue/knob";
-import InputText from "primevue/inputtext";
-import Select from "primevue/select";
+<script setup>
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
+import TabPanels from "primevue/tabpanels";
+import TabPanel from "primevue/tabpanel";
 
-import {
-    getSysexDumpRequestMessage,
-    isValidXGDump,
-    getXGMultiPartNumber,
-    changeXGMultiPartNumber,
-} from "@/sysex/messages";
-import { checkSysexAndReplaceCheckSum } from "@/sysex/parser";
-
-const midiAccess = ref<any>();
-const availableMidiInputs = ref<Array<any>>([]);
-const availableMidiOutputs = ref<Array<any>>([]);
-const selectedMidiInput = ref<any>();
-const selectedMidiOutput = ref<any>(null);
-
-const inputXgMultiPart = ref<Number>(0);
-const outputXgMultiPart = ref<Number>(0);
-
-const dumpData = ref<Array<string>>([]);
-
-const volume = ref(50);
-
-function sendUmpRequest() {
-    const message = getSysexDumpRequestMessage(Number(inputXgMultiPart.value));
-
-    if (selectedMidiOutput) {
-        selectedMidiOutput.value.port.send(message);
-    }
-}
-
-function sendPartData() {
-    console.log("Sending SysEx message:", Array.from(dumpData.value));
-    if (selectedMidiOutput.value) {
-        selectedMidiOutput.value.port.send(Array.from(checkSysexAndReplaceCheckSum(dumpData.value)));
-    }
-}
-
-onMounted(async () => {
-    try {
-        const access = await navigator.requestMIDIAccess({ sysex: true });
-        midiAccess.value = access;
-
-        console.log(midiAccess.value);
-
-        for (let input of midiAccess.value.inputs.values()) {
-            input.onmidimessage = (message: WebMidi.MIDIMessageEvent): void => {
-                const [status, data1, data2] = message.data;
-
-                if (status === 248 || status === 254) {
-                    return;
-                }
-
-                console.log(`MIDI message received: status=${status}, data1=${data1}, data2=${data2}`);
-
-                const dataArray = Array.from(
-                    message.data,
-                    (byte) => "0x" + byte.toString(16).toUpperCase().padStart(2, "0"),
-                );
-                console.log("MIDI message received:", dataArray);
-
-                if (isValidXGDump(dataArray)) {
-                    console.log("MIDI message is valid dump");
-                    dumpData.value = dataArray;
-                    console.log("Dump data:", dumpData.value);
-                }
-            };
-        }
-    } catch (err) {
-        console.error("Failed to get MIDI access", err);
-    }
-});
-
-watch(outputXgMultiPart, (newValue, oldValue) => {
-    if (!dumpData.value.length) {
-        return;
-    }
-    console.log("Output XG Multi Part changed:", oldValue, newValue);
-    dumpData.value = changeXGMultiPartNumber(dumpData.value, Number(newValue));
-    console.log(dumpData.value);
-});
-
-const computedPartNumber = computed(() => {
-    console.log("Computed Part Number:" + getXGMultiPartNumber(dumpData.value));
-    return getXGMultiPartNumber(dumpData.value);
-});
-
-watch(midiAccess, (newValue) => {
-    if (!newValue) {
-        return;
-    }
-
-    const inputs = Array.from(newValue.inputs.values()).map((input: any) => ({
-        name: input.name,
-        port: input,
-    }));
-
-    const outputs = Array.from(newValue.outputs.values()).map((output: any) => ({
-        name: output.name,
-        port: output,
-    }));
-
-    availableMidiInputs.value = inputs;
-    availableMidiOutputs.value = outputs;
-});
+import PartDumper from "./components/PartDumper.vue";
 </script>
 
 <template>
-    <div class="container mx-auto">
-        <h1>XG Multi Part Editor</h1>
-        <main class="flex">
-            <!-- List Midi Inputs and let the user chose -->
-            <label>Select MIDI Input</label>
-            <Select v-model="selectedMidiInput" :options="availableMidiInputs" placeholder="Select Input"
-                optionLabel="name" />
-
-            <!-- List Midi Outputs and let the user chose -->
-            <label>Select MIDI Output</label>
-            <Select v-model="selectedMidiOutput" :options="availableMidiOutputs" placeholder="Select Output"
-                optionLabel="name" />
-
-            <!-- List of XG Multi Parts, from 0 to 99 -->
-            <label>Select Input XG Multi Part</label>
-            <Select v-model="inputXgMultiPart" :options="Array.from({ length: 100 }, (_, i) => i)"
-                placeholder="Select Part" />
-
-            <!-- List of XG Multi Parts, from 0 to 99 -->
-            <label>Select Output XG Multi Part</label>
-            <Select v-model="outputXgMultiPart" :options="Array.from({ length: 100 }, (_, i) => i)"
-                placeholder="Select Part" />
-
-            <!-- Send Dump Request -->
-            <Button @click="sendUmpRequest">Send Dump Request</Button>
-
-            <!-- Dump Data -->
-            <label>Dump Data</label>
-            <textarea rows="10" cols="50" disabled>
-                {{ dumpData }}
-            </textarea>
-            <p v-if="dumpData.length">Part Number: {{ computedPartNumber }}</p>
-
-            <!-- Send Part Data -->
-            <Button @click="sendPartData">Send Part Data</Button>
-
-            <label>Volume</label>
-            <Knob v-model="volume" :min="0" :max="127" :step="1" :size="100" :showValue="true" />
-            <input type="number" v-model="volume" min="0" max="127" />
-            <InputText v-model="volume" />
-        </main>
-    </div>
+    <Tabs value="0">
+        <TabList class="relative">
+            <img alt="Yamaha XG" src="/img/xg-logo.png" class="absolute top-0 left-0 h-10 z-10 transform -translate-y-1/2 top-1/2" />
+            <div class="mx-auto">
+                <Tab value="0">Part Dumper</Tab>
+                <Tab value="1">Header II</Tab>
+                <Tab value="2">Header III</Tab>
+            </div>
+        </TabList>
+        <TabPanels>
+            <TabPanel value="0">
+                <PartDumper />
+            </TabPanel>
+            <TabPanel value="1">
+                <p class="m-0">
+                    Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,
+                    totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae
+                    dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit,
+                    sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci
+                    velit, sed quia non numquam eius modi.
+                </p>
+            </TabPanel>
+            <TabPanel value="2">
+                <p class="m-0">
+                    At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum
+                    deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non
+                    provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum
+                    fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis
+                    est eligendi optio cumque nihil impedit quo minus.
+                </p>
+            </TabPanel>
+        </TabPanels>
+    </Tabs>
 </template>
 
-<style scoped>
-main {
-    flex-direction: column;
-    gap: 1rem;
-}
-</style>
+<script setup></script>
+
+<style lang="scss" scoped></style>
