@@ -15,7 +15,7 @@ import PartDumper from "./components/PartDumper.vue";
             <div class="mx-auto">
                 <Tab value="0">Part Dumper</Tab>
                 <Tab value="1">Header II</Tab>
-                <Tab value="2">Header III</Tab>
+                <Tab value="2" disabled>Header III</Tab>
             </div>
         </TabList>
         <TabPanels>
